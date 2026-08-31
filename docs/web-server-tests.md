@@ -86,5 +86,6 @@ On the dashboard you should see `POST` / `GET` / `PUT` / `DELETE` rows, then a `
 
 ## Related
 
+- How to run pytest, pick a host, and select cases: [Running pytest](pytest.md)
 - How to run pytest, markers, and `--url`: [tests/README.md](../tests/README.md)
 - Why these RPCs are protobuf on the wire, and how tests still use JSON: [Why gRPC uses protobuf](protobuf.md)

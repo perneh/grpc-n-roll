@@ -94,4 +94,5 @@ You *can* skip: writing `users_pb2.User(name="Ada")` in tests, checking in gener
 ## Related
 
 - Lab tests and what they prove: [Tests against the lab web server](web-server-tests.md)
+- Host and test selection: [Running pytest](pytest.md)
 - Running pytest: [tests/README.md](../tests/README.md)

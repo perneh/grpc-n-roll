@@ -2,13 +2,21 @@
 
 Functional pytest suite for grpc-n-roll. Tests are short specifications that compose builders, actions, and assertions. Diagnostic output uses `logging`, never `print()`.
 
+Cookbook for **another host** and **which cases to run**: [docs/pytest.md](../docs/pytest.md).
+
 ## Quick start
 
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+python -m pip install --upgrade pip
 pip install -e ".[dev]"
 pytest
 pytest tests/unit/test_status.py
 pytest tests/integration/test_users.py
+
+# If pytest is not the venv one:
+.venv/bin/pytest tests/integration/test_users.py
 
 # Debug logging
 LOG_LEVEL=DEBUG pytest
@@ -17,7 +25,40 @@ pytest --log-cli-level=DEBUG
 # Aim integration/live tests at the lab
 python -m demo
 pytest tests/integration --url=127.0.0.1:50051
+
+# Stop on first failure (run to fail)
+pytest -x
+pytest -x tests/integration/test_users.py
 ```
+
+## Pytest flags
+
+This repo sets `--strict-markers --strict-config` in `pyproject.toml`. These are stock pytest switches. `-q` and `-v` **add together**: a config `-q` plus a CLI `-v` cancel out to dots, not names. There is no `-q` in addopts now, so `-v` shows each test.
+
+| Flag | Long form | What it does |
+| --- | --- | --- |
+| `-v` | `--verbose` | Print each test name as it runs (`PASSED` / `FAILED`). |
+| `-vv` | | Extra verbose: more assertion detail and fixture/setup noise. |
+| `-s` | `--capture=no` | Do **not** capture stdout/stderr. Logs and `pdb` print live. Without `-s`, pytest only dumps capture when a test **fails**. |
+| `-ra` | `--report-chars=a` | Extra summary at the end: skipped, xfailed, warnings (not passed). |
+| `-x` | `--exitfirst` | **Run to fail:** stop on the first failure; do not run the rest. |
+
+```bash
+pytest -v tests/integration/test_users.py
+pytest -vv tests/integration/test_users.py
+pytest -s tests/integration/test_users.py
+pytest -ra
+pytest -x                                 # run to fail
+pytest -x tests/integration
+
+# Typical combo: names + skip reasons + stop at first red
+pytest -v -ra -x
+
+# Live logs (expected 404/400 are DEBUG, so they stay hidden unless you raise the log level)
+pytest -s --log-cli-level=DEBUG tests/integration/test_users.py
+```
+
+`-s` is not a test failure. It only unmutes captured output. More flags (durations, pdb, `--lf`): [docs/pytest.md](../docs/pytest.md).
 
 Without `--url`, integration tests start an in-process gRPC server. With `--url`, they reset the lab (`POST http://<address>:8080/reset`) and call the running gRPC server. Log in at http://127.0.0.1:8080 (`demo` / `demo`) to watch RPCs as tests run. `python -m demo reset` clears the lab from the CLI.
 
@@ -66,7 +107,7 @@ def test_create_user_returns_user_when_name_given(app):
 | Layer | Put here | Logging |
 | --- | --- | --- |
 | `builders/` | Pure payloads (`build_user_create`) | No |
-| `actions/` | RPC calls and app lifecycle | DEBUG steps, ERROR on failure |
+| `actions/` | RPC calls and app lifecycle | DEBUG steps; unexpected exceptions at ERROR |
 | `assertions/` | `assert_ok`, `assert_user_named`, … | No |
 | `cli_options.py` | Parse/resolve target | No |
 | `conftest.py` | Fixtures only | Setup/teardown |
@@ -84,7 +125,7 @@ pytest --log-cli-level=DEBUG
 
 Format: timestamp, level, logger name, message.
 
-Actions log DEBUG for each RPC and ERROR (with `exc_info=True`) before re-raising. Do not use `print()`, `pprint()`, or custom debug wrappers.
+Actions log DEBUG for each RPC (including expected 404/400). Unexpected exceptions are logged at ERROR with `exc_info=True` before re-raising. Do not use `print()`, `pprint()`, or custom debug wrappers.
 
 ## CLI options
 
@@ -122,6 +163,8 @@ Directories are auto-marked `unit` / `integration`. Exclude slow tests with `pyt
 ## CI
 
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -e ".[dev]"
 pytest
 ```

@@ -19,8 +19,8 @@ def _call(label: str, fn, *args: Any, **kwargs: Any) -> dict[str, Any]:
         raise
     logger.debug("%s status=%s", label, response["status_code"])
     if not response["ok"]:
-        logger.error(
-            "%s failed: status=%s body=%s",
+        logger.debug(
+            "%s returned %s: %s",
             label,
             response["status_code"],
             response["text"],

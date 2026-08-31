@@ -15,8 +15,8 @@ def raise_if_error(response: dict[str, Any]) -> dict[str, Any]:
     try:
         return raise_for_status(response)
     except Exception:
-        logger.error(
-            "raise_for_status failed: status=%s body=%s",
+        logger.debug(
+            "raise_for_status raised for status=%s: %s",
             response["status_code"],
             response["text"],
             exc_info=True,

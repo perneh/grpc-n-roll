@@ -22,16 +22,46 @@ def test_missing_user_returns_404(app):
 
 ## Install
 
+Use a project virtualenv so `pytest` and `grpcio-tools` are the ones from this repo, not a system install.
+
 ```bash
+cd grpc-n-roll
+python3 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+python -m pip install --upgrade pip
 pip install -e ".[dev]"
 ```
 
-The `dev` extra pulls in `grpcio-tools` (for compiling test protos) and `grpcio-reflection` (for live-server tests).
+The `dev` extra pulls in `grpcio-tools` (compiles test protos) and `grpcio-reflection` (live-server tests).
 
-How to run this repository's tests, including `--address` / `--port` / `--url` and the functional layout, is in [tests/README.md](tests/README.md).
+Check that you are in the venv (`which python` / `which pytest` should point at `.venv/bin/…`):
+
+```bash
+python -c "import grpc_tools; print('ok')"
+pytest tests/integration/test_users.py
+```
+
+If `pytest` still says `No module named 'grpc_tools'`, the shell is using another pytest. Either activate the venv again, or call it explicitly:
+
+```bash
+.venv/bin/pip install -e ".[dev]"
+.venv/bin/pytest tests/integration/test_users.py
+```
+
+Later sessions:
+
+```bash
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pytest
+python -m demo
+```
+
+How to run this repository's tests, including `--address` / `--port` / `--url` and picking cases, is in [Running pytest](docs/pytest.md). Conventions and layout: [tests/README.md](tests/README.md).
 
 ## Docs
 
+- [tests/README.md](tests/README.md) — how this repo’s tests are structured and written.
+- [Running pytest](docs/pytest.md) — choose another host (`--url` / `--address` / `--port`) and select cases (path, `-k`, `-m`).
 - [Tests against the lab web server](docs/web-server-tests.md) — what pytest does when it hits the running lab, test by test.
 - [Why gRPC uses protobuf](docs/protobuf.md) — why the wire format is protobuf, and how tests still use JSON.
 
@@ -40,16 +70,19 @@ How to run this repository's tests, including `--address` / `--port` / `--url` a
 A local UserService plus a login UI so you can watch tests hit the server.
 
 ```bash
+source .venv/bin/activate          # skip if already active
 python -m demo
 ```
 
 Open http://127.0.0.1:8080 and log in with `demo` / `demo`. The dashboard shows live RPCs while tests run. **Reset server** (or `python -m demo reset`) clears users and the event log.
 
 ```bash
-# Terminal 1
+# Terminal 1 (venv must be active)
+source .venv/bin/activate
 python -m demo
 
-# Terminal 2 — same tests, against the lab
+# Terminal 2
+source .venv/bin/activate
 pytest tests/integration --url=127.0.0.1:50051
 ```
 

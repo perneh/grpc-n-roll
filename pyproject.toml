@@ -42,7 +42,7 @@ packages = ["src/grpc_n_roll"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-addopts = "-q --strict-markers --strict-config"
+addopts = "--strict-markers --strict-config"
 log_cli_level = "WARNING"
 log_cli_format = "%(asctime)s %(levelname)s %(name)s %(message)s"
 log_cli_date_format = "%Y-%m-%d %H:%M:%S"
