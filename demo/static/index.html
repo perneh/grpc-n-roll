@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>grpc-n-roll lab</title>
+  <style>
+    :root {
+      --bg: #12110f;
+      --panel: #1c1a17;
+      --ink: #f3efe7;
+      --muted: #9a9286;
+      --line: #2e2a24;
+      --live: #d6ff4b;
+      --idle: #6f6a62;
+      --ok: #7dffb3;
+      --bad: #ff7a6e;
+      --warn: #ffb347;
+      --btn: #f3efe7;
+      --btn-ink: #161410;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--ink); }
+    body {
+      font: 15px/1.45 "IBM Plex Mono", "ui-monospace", Menlo, monospace;
+    }
+    a { color: inherit; }
+    .shell { max-width: 1100px; margin: 0 auto; padding: 28px 20px 48px; }
+    .mark { letter-spacing: 0.16em; text-transform: uppercase; font-size: 11px; color: var(--muted); }
+    h1 { font-size: 28px; font-weight: 600; margin: 6px 0 0; letter-spacing: -0.03em; }
+    .sub { color: var(--muted); margin-top: 8px; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 22px;
+      margin-top: 22px;
+    }
+    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      color: var(--ink);
+      padding: 10px 12px;
+      font: inherit;
+      margin-bottom: 14px;
+    }
+    button, .button {
+      appearance: none;
+      border: 0;
+      background: var(--btn);
+      color: var(--btn-ink);
+      font: inherit;
+      padding: 10px 16px;
+      cursor: pointer;
+      border-radius: 2px;
+    }
+    button.ghost {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+    button.danger { background: var(--live); }
+    .error { color: var(--bad); margin: 0 0 12px; }
+    .hidden { display: none !important; }
+    header.top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      padding: 8px 12px;
+      min-width: 180px;
+    }
+    .dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--idle);
+    }
+    body.tests-running .dot { background: var(--live); box-shadow: 0 0 12px var(--live); }
+    body.tests-running #live-label { color: var(--live); }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 8px 0; border-bottom: 1px solid var(--line); }
+    th { color: var(--muted); font-weight: 500; }
+    .feed { list-style: none; margin: 0; padding: 0; max-height: 420px; overflow: auto; }
+    .feed li {
+      display: grid;
+      grid-template-columns: 72px 72px 1fr;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+    .code-ok { color: var(--ok); }
+    .code-bad { color: var(--bad); }
+    .code-warn { color: var(--warn); }
+    .muted { color: var(--muted); }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .count { color: var(--muted); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <p class="mark">grpc-n-roll</p>
+    <h1>Lab</h1>
+    <p class="sub">Log in to watch live tests. Reset wipes users and the event log.</p>
+
+    <section id="login-panel" class="panel" hidden>
+      <p id="login-error" class="error hidden">Wrong username or password.</p>
+      <form method="post" action="/login">
+        <label for="username">Username</label>
+        <input id="username" name="username" type="text" value="demo" autocomplete="username">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" value="demo" autocomplete="current-password">
+        <button type="submit">Log in</button>
+      </form>
+      <p class="muted">Default login is <code>demo</code> / <code>demo</code>.</p>
+    </section>
+
+    <section id="lab-panel" hidden>
+      <header class="top">
+        <div>
+          <div class="badge" data-testid="live-badge">
+            <span class="dot" aria-hidden="true"></span>
+            <span id="live-label">Idle</span>
+          </div>
+          <p class="count" id="user-count">0 users in memory</p>
+        </div>
+        <div class="actions">
+          <form method="post" action="/reset">
+            <button class="danger" type="submit" data-testid="reset-button">Reset server</button>
+          </form>
+          <form method="post" action="/logout">
+            <button class="ghost" type="submit">Log out</button>
+          </form>
+        </div>
+      </header>
+
+      <div class="grid">
+        <div class="panel">
+          <p class="mark">Users</p>
+          <table>
+            <thead><tr><th>Id</th><th>Name</th><th>Email</th></tr></thead>
+            <tbody id="users-body" data-testid="users-table"></tbody>
+          </table>
+          <p id="users-empty" class="muted">Empty. Run pytest against this lab to fill it.</p>
+        </div>
+        <div class="panel">
+          <p class="mark">Live RPCs</p>
+          <ul id="event-feed" class="feed" data-testid="event-feed"></ul>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+    const loginPanel = document.getElementById("login-panel");
+    const labPanel = document.getElementById("lab-panel");
+    const liveLabel = document.getElementById("live-label");
+    const userCount = document.getElementById("user-count");
+    const usersBody = document.getElementById("users-body");
+    const usersEmpty = document.getElementById("users-empty");
+    const feed = document.getElementById("event-feed");
+    let liveTimer = null;
+
+    function showLogin(failed) {
+      loginPanel.hidden = false;
+      labPanel.hidden = true;
+      document.getElementById("login-error").classList.toggle("hidden", !failed);
+    }
+
+    function statusClass(code) {
+      if (code < 300) return "code-ok";
+      if (code < 500) return "code-warn";
+      return "code-bad";
+    }
+
+    function renderUsers(users) {
+      usersBody.innerHTML = users.map((user) => (
+        `<tr><td>${escapeHtml(user.id)}</td><td>${escapeHtml(user.name)}</td><td>${escapeHtml(user.email || "")}</td></tr>`
+      )).join("");
+      usersEmpty.classList.toggle("hidden", users.length > 0);
+      userCount.textContent = `${users.length} user${users.length === 1 ? "" : "s"} in memory`;
+    }
+
+    function prependEvent(event, live = true) {
+      if (event.method === "Reset") {
+        feed.innerHTML = "";
+        renderUsers([]);
+      }
+      const item = document.createElement("li");
+      item.innerHTML = `
+        <span class="${statusClass(event.status_code)}">${event.status_code}</span>
+        <span>${escapeHtml(event.method)}</span>
+        <span>${escapeHtml(event.detail || event.path)} <span class="muted">${escapeHtml(event.reason || "")}</span></span>
+      `;
+      feed.prepend(item);
+      if (live) markLive();
+    }
+
+    function markLive() {
+      document.body.classList.add("tests-running");
+      liveLabel.textContent = "Tests running";
+      clearTimeout(liveTimer);
+      liveTimer = setTimeout(() => {
+        document.body.classList.remove("tests-running");
+        liveLabel.textContent = "Idle";
+      }, 1800);
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (ch) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[ch]));
+    }
+
+    async function boot() {
+      const failed = new URLSearchParams(location.search).get("error") === "1";
+      const me = await fetch("/api/me");
+      if (!me.ok) {
+        showLogin(failed);
+        return;
+      }
+      loginPanel.hidden = true;
+      labPanel.hidden = false;
+      const snap = await fetch("/api/snapshot").then((r) => r.json());
+      renderUsers(snap.users || []);
+      (snap.events || []).forEach((event) => prependEvent(event, false));
+      const stream = new EventSource("/events");
+      stream.onmessage = (message) => prependEvent(JSON.parse(message.data));
+      document.querySelector("[data-testid=reset-button]").addEventListener("click", async (event) => {
+        event.preventDefault();
+        await fetch("/reset", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { Accept: "application/json" },
+        });
+      });
+    }
+
+    boot();
+  </script>
+</body>
+</html>

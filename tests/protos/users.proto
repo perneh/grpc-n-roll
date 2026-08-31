@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package users;
+
+message User {
+  string id = 1;
+  string name = 2;
+  string email = 3;
+}
+
+message GetUserRequest {
+  string id = 1;
+}
+
+message ListUsersRequest {
+  string name_prefix = 1;
+}
+
+message CreateUserRequest {
+  string name = 1;
+  string email = 2;
+}
+
+message UpdateUserRequest {
+  string id = 1;
+  string name = 2;
+  string email = 3;
+}
+
+message DeleteUserRequest {
+  string id = 1;
+}
+
+message DeleteUserResponse {}
+
+message ImportSummary {
+  int32 created = 1;
+}
+
+message Text {
+  string value = 1;
+}
+
+message DelayRequest {
+  float seconds = 1;
+}
+
+service UserService {
+  rpc GetUser(GetUserRequest) returns (User);
+  rpc ListUsers(ListUsersRequest) returns (stream User);
+  rpc CreateUser(CreateUserRequest) returns (User);
+  rpc UpdateUser(UpdateUserRequest) returns (User);
+  rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse);
+  rpc ImportUsers(stream CreateUserRequest) returns (ImportSummary);
+  rpc Echo(stream Text) returns (stream Text);
+  rpc Delay(DelayRequest) returns (User);
+}

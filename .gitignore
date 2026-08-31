@@ -203,6 +203,9 @@ cython_debug/
 # Temporary file for partial code execution
 tempCodeRunnerFile.py
 
+# Generated test protobufs
+tests/_generated/
+
 # Ruff stuff:
 .ruff_cache/
 
